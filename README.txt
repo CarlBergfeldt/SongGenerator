@@ -1,0 +1,1 @@
+This is so far a dummy project for playing around with C++. Let's see if it develops to something funny and even remotely useful. :D
