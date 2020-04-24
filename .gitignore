@@ -1,3 +1,15 @@
 /.vs/SongGenerator/v15/Browse.VC.db
 /.vs/SongGenerator/v15/Browse.VC.opendb
 /.vs/SongGenerator/v15/ipch/b903df65ac9ca94b.ipch
+/.vs/SongGenerator/v15/*.suo
+/.vs/SongGenerator/v15/ipch/AutoPCH/86e31059fdd04626/*.ipch
+/.vs/SongGenerator/v15/ipch/AutoPCH/b2a1d6341ceb83c2/*.ipch
+/Debug/*.exe
+/Debug/*.ilk
+/Debug/*.pdb
+/SongGenerator/Debug/*.obj
+/SongGenerator/Debug/*.log
+/SongGenerator/Debug/SongGenerator.tlog/*.tlog
+/SongGenerator/Debug/SongGenerator.tlog/*.lastbuildstate
+/SongGenerator/Debug/*.idb
+/SongGenerator/Debug/*.pdb
