@@ -72,12 +72,14 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>C:\Development\Private\SongGenerator\SongGenerator\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
+    <IncludePath>C:\Development\Private\SongGenerator\SongGenerator\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -156,10 +158,21 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="include\Chord.h" />
+    <ClInclude Include="include\Lyrics.h" />
+    <ClInclude Include="include\Song.h" />
+    <ClInclude Include="include\SongPart.h" />
+    <ClInclude Include="include\TimeSignature.h" />
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Chord.cpp" />
+    <ClCompile Include="src\Lyrics.cpp" />
+    <ClCompile Include="src\Song.cpp" />
     <ClCompile Include="src\SongGenerator.cpp" />
+    <ClCompile Include="src\SongPart.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="SongGenerator.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

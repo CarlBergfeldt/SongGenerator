@@ -13,3 +13,13 @@
 /SongGenerator/Debug/SongGenerator.tlog/*.lastbuildstate
 /SongGenerator/Debug/*.idb
 /SongGenerator/Debug/*.pdb
+/.vs/SongGenerator/v15/ipch/AutoPCH/21f21a31ad87a79c/SONGPART.ipch
+/.vs/SongGenerator/v15/ipch/AutoPCH/5afec85717b041cd/SONG.ipch
+/.vs/SongGenerator/v15/ipch/AutoPCH/5fae538ec6c77203/LYRICS.ipch
+/.vs/SongGenerator/v15/ipch/AutoPCH/7d793ee8f12f4612/SONGPART.ipch
+/.vs/SongGenerator/v15/ipch/AutoPCH/9222f47a8726eccc/TIMESIGNATURE.ipch
+/.vs/SongGenerator/v15/ipch/AutoPCH/ba6a9bfdda8259d3/SONG.ipch
+/.vs/SongGenerator/v15/ipch/AutoPCH/d4bf204c5582f17e/LYRICS.ipch
+/SongGenerator/Debug/SongGenerator.res
+/SongGenerator/SongGenerator.aps
+/SongGenerator/SongGenerator.rc
