@@ -10,9 +10,9 @@ Chord::~Chord()
 {
 }
 
-const char* Chord::ToString()
+std::string Chord::ToString()
 {
-  const char* s = "";
+  std::string s = "";
 
   switch (root)
   {
@@ -51,6 +51,17 @@ const char* Chord::ToString()
     break;
   case Note::B:
     s = "B";
+    break;
+  default:
+    break;
+  }
+
+  switch (quality)
+  {
+  case ChordQuality::Major:
+    break;
+  case ChordQuality::Minor:
+    s += "m";
     break;
   default:
     break;

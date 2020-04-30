@@ -19,21 +19,28 @@ int main()
   bool isCMaj = isChord(Note::C, ChordQuality::Major, chord);
 
   // Slipknot - Snuff
-  std::vector<Chord *> chordProgression = {
+  std::vector<Chord *> chordProgressionVerse = {
   new Chord(Note::A, ChordQuality::Minor),
   new Chord(Note::E, ChordQuality::Minor),
   new Chord(Note::F, ChordQuality::Major),
   new Chord(Note::E, ChordQuality::Minor)
   };
 
-  std::string lyrics = "This is not an exit.";
-  std::string lyrics2 = "Not this \n Either.";
+  std::vector<Chord *> chordProgressionChorus = {
+new Chord(Note::G, ChordQuality::Major),
+new Chord(Note::A, ChordQuality::Minor),
+new Chord(Note::G, ChordQuality::Major),
+new Chord(Note::A, ChordQuality::Minor)
+  };
 
-  SongPart intro = SongPart(&chordProgression, lyrics);
-  intro.SetTimeSignature(4, 4); 
-  intro.SetNumberOfBars(8);
+  std::string lyricsVerse1 = "Bury all your secrets in my skin\n Come away with innocence, and leave me with my sins\n "
+    "The air around me still feels like a cage\n And love is just a camouflage for what resembles rage again";
 
-  Song song = Song({ &intro, new SongPart(&chordProgression, lyrics2) });
+  SongPart verse = SongPart(&chordProgressionVerse, lyricsVerse1);
+  verse.SetTimeSignature(4, 4);
+  verse.SetNumberOfBars(16);
+
+  Song song = Song({ &verse, new SongPart(&chordProgressionChorus, "") });
 
 
   std::cout << song.ToString() << "\n";

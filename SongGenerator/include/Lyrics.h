@@ -12,7 +12,9 @@ public:
 
   std::string ToString();
 
-private:
+  std::vector<std::string> * GetLyrics();
+
+public:
   std::vector<std::string> lyrics;
 
 };
