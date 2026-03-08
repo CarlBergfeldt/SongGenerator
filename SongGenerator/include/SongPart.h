@@ -9,8 +9,6 @@
 
 class SongPart
 {
-
-
 public:
   SongPart();
 
@@ -29,6 +27,8 @@ public:
   bool SetTimeSignature(uint32_t upper, uint32_t lower);
 
   std::string ToString();
+
+  std::string ToTabString();
 
 private:
   uint32_t DefaultNoteResolution = 8;
@@ -60,6 +60,4 @@ private:
   uint32_t numberOfBars = DefaultNumberOfBars;
 
   TimeSignature timeSignature = DefaultTimeSignature;
-
 };
-
