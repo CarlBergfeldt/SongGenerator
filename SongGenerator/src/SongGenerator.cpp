@@ -82,6 +82,37 @@ namespace
     return true;
   }
 
+  std::string ToUpperInvariant(const std::string & text)
+  {
+    std::string normalized;
+    normalized.reserve(text.size());
+
+    for (char c : text)
+    {
+      normalized.push_back(static_cast<char>(std::toupper(static_cast<unsigned char>(c))));
+    }
+
+    return normalized;
+  }
+
+  std::string ToLowerInvariant(const std::string & text)
+  {
+    std::string normalized;
+    normalized.reserve(text.size());
+
+    for (char c : text)
+    {
+      normalized.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
+    }
+
+    return normalized;
+  }
+
+  bool StartsWith(const std::string & value, const std::string & prefix)
+  {
+    return value.size() >= prefix.size() && value.compare(0, prefix.size(), prefix) == 0;
+  }
+
   bool TryMapNote(const std::string & token, Note & note)
   {
     if (token == "C") { note = Note::C; return true; }
@@ -100,6 +131,92 @@ namespace
     return false;
   }
 
+  bool TryParseSingleNoteToken(const std::string & rawToken, Note & note)
+  {
+    const std::string token = Trim(rawToken);
+    if (token.empty() || token.size() > 2)
+    {
+      return false;
+    }
+
+    std::string normalized;
+    normalized.reserve(2);
+
+    const char noteLetter = static_cast<char>(std::toupper(static_cast<unsigned char>(token[0])));
+    if (noteLetter < 'A' || noteLetter > 'G')
+    {
+      return false;
+    }
+
+    normalized.push_back(noteLetter);
+
+    if (token.size() == 2)
+    {
+      const char accidental = token[1];
+      if (accidental == '#')
+      {
+        normalized.push_back('#');
+      }
+      else if (accidental == 'b' || accidental == 'B')
+      {
+        normalized.push_back('B');
+      }
+      else
+      {
+        return false;
+      }
+    }
+
+    return TryMapNote(normalized, note);
+  }
+
+  bool TryParseLeadingNoteToken(const std::string & token, std::size_t & consumedLength, Note & note)
+  {
+    consumedLength = 0;
+    if (token.empty())
+    {
+      return false;
+    }
+
+    const char noteLetter = static_cast<char>(std::toupper(static_cast<unsigned char>(token[0])));
+    if (noteLetter < 'A' || noteLetter > 'G')
+    {
+      return false;
+    }
+
+    consumedLength = 1;
+    std::string normalized;
+    normalized.push_back(noteLetter);
+
+    if (token.size() > 1)
+    {
+      const char accidental = token[1];
+      if (accidental == '#')
+      {
+        normalized.push_back('#');
+        consumedLength = 2;
+      }
+      else if (accidental == 'b' || accidental == 'B')
+      {
+        normalized.push_back('B');
+        consumedLength = 2;
+      }
+    }
+
+    return TryMapNote(normalized, note);
+  }
+
+  bool TryConsumeToken(std::string & remaining, const std::string & token)
+  {
+    if (StartsWith(remaining, token))
+    {
+      remaining.erase(0, token.size());
+      return true;
+    }
+
+    return false;
+  }
+
   bool TryParseChordToken(const std::string & rawToken, Chord *& outChord)
   {
     outChord = nullptr;
@@ -109,37 +226,255 @@ namespace
       return false;
     }
 
-    std::string normalized;
-    normalized.reserve(token.size());
-    for (char c : token)
-    {
-      normalized.push_back(static_cast<char>(std::toupper(static_cast<unsigned char>(c))));
-    }
+    std::string chordBody = token;
+    std::string bassToken;
 
-    ChordQuality quality = ChordQuality::Major;
-    if (normalized.size() >= 3 && normalized.substr(normalized.size() - 3) == "MIN")
+    const std::size_t slash = token.find('/');
+    if (slash != std::string::npos)
     {
-      quality = ChordQuality::Minor;
-      normalized = normalized.substr(0, normalized.size() - 3);
-    }
-    else if (normalized.size() >= 3 && normalized.substr(normalized.size() - 3) == "MAJ")
-    {
-      quality = ChordQuality::Major;
-      normalized = normalized.substr(0, normalized.size() - 3);
-    }
-    else if (normalized.size() > 1 && normalized.back() == 'M')
-    {
-      quality = ChordQuality::Minor;
-      normalized = normalized.substr(0, normalized.size() - 1);
+      if (token.find('/', slash + 1) != std::string::npos)
+      {
+        return false;
+      }
+
+      chordBody = Trim(token.substr(0, slash));
+      bassToken = Trim(token.substr(slash + 1));
+      if (chordBody.empty() || bassToken.empty())
+      {
+        return false;
+      }
     }
 
     Note root;
-    if (!TryMapNote(normalized, root))
+    std::size_t rootLength = 0;
+    if (!TryParseLeadingNoteToken(chordBody, rootLength, root))
     {
       return false;
     }
 
-    outChord = new Chord(root, quality);
+    std::string descriptor = chordBody.substr(rootLength);
+    descriptor.erase(std::remove_if(descriptor.begin(), descriptor.end(),
+      [](char c)
+      {
+        return std::isspace(static_cast<unsigned char>(c)) != 0;
+      }),
+      descriptor.end());
+    descriptor.erase(std::remove(descriptor.begin(), descriptor.end(), '('), descriptor.end());
+    descriptor.erase(std::remove(descriptor.begin(), descriptor.end(), ')'), descriptor.end());
+
+    std::string remaining = ToLowerInvariant(descriptor);
+    if (StartsWith(remaining, "major"))
+    {
+      remaining.replace(0, 5, "maj");
+    }
+
+    if (StartsWith(remaining, "minor"))
+    {
+      remaining.replace(0, 5, "min");
+    }
+
+    ChordQuality quality = ChordQuality::Major;
+    ChordSeventh seventh = ChordSeventh::None;
+    ChordExtension extension = ChordExtension::None;
+    ChordAlterations alterations = {};
+    bool addSixth = false;
+    bool addNinth = false;
+    bool omitThird = false;
+    bool omitFifth = false;
+
+    if (TryConsumeToken(remaining, "min"))
+    {
+      quality = ChordQuality::Minor;
+    }
+    else if (StartsWith(remaining, "m") && !StartsWith(remaining, "maj"))
+    {
+      quality = ChordQuality::Minor;
+      remaining.erase(0, 1);
+    }
+    else if (TryConsumeToken(remaining, "dim"))
+    {
+      quality = ChordQuality::Diminished;
+    }
+    else if (TryConsumeToken(remaining, "aug") || TryConsumeToken(remaining, "+"))
+    {
+      quality = ChordQuality::Augmented;
+    }
+    else if (TryConsumeToken(remaining, "sus2"))
+    {
+      quality = ChordQuality::Suspended2;
+    }
+    else if (TryConsumeToken(remaining, "sus4") || TryConsumeToken(remaining, "sus"))
+    {
+      quality = ChordQuality::Suspended4;
+    }
+    else if (TryConsumeToken(remaining, "5"))
+    {
+      quality = ChordQuality::Power;
+    }
+
+    if (TryConsumeToken(remaining, "maj13"))
+    {
+      seventh = ChordSeventh::Major;
+      extension = ChordExtension::Thirteenth;
+    }
+    else if (TryConsumeToken(remaining, "maj11"))
+    {
+      seventh = ChordSeventh::Major;
+      extension = ChordExtension::Eleventh;
+    }
+    else if (TryConsumeToken(remaining, "maj9"))
+    {
+      seventh = ChordSeventh::Major;
+      extension = ChordExtension::Ninth;
+    }
+    else if (TryConsumeToken(remaining, "maj7"))
+    {
+      seventh = ChordSeventh::Major;
+    }
+    else
+    {
+      TryConsumeToken(remaining, "maj");
+    }
+
+    while (!remaining.empty())
+    {
+      if (TryConsumeToken(remaining, "add9"))
+      {
+        addNinth = true;
+        continue;
+      }
+
+      if (TryConsumeToken(remaining, "add6"))
+      {
+        addSixth = true;
+        continue;
+      }
+
+      if (TryConsumeToken(remaining, "omit3") || TryConsumeToken(remaining, "no3"))
+      {
+        omitThird = true;
+        continue;
+      }
+
+      if (TryConsumeToken(remaining, "omit5") || TryConsumeToken(remaining, "no5"))
+      {
+        omitFifth = true;
+        continue;
+      }
+
+      if (TryConsumeToken(remaining, "b13"))
+      {
+        alterations.flatThirteenth = true;
+        continue;
+      }
+
+      if (TryConsumeToken(remaining, "#13"))
+      {
+        alterations.sharpThirteenth = true;
+        continue;
+      }
+
+      if (TryConsumeToken(remaining, "b11"))
+      {
+        alterations.flatEleventh = true;
+        continue;
+      }
+
+      if (TryConsumeToken(remaining, "#11"))
+      {
+        alterations.sharpEleventh = true;
+        continue;
+      }
+
+      if (TryConsumeToken(remaining, "b9"))
+      {
+        alterations.flatNine = true;
+        continue;
+      }
+
+      if (TryConsumeToken(remaining, "#9"))
+      {
+        alterations.sharpNine = true;
+        continue;
+      }
+
+      if (TryConsumeToken(remaining, "b5"))
+      {
+        alterations.flatFive = true;
+        continue;
+      }
+
+      if (TryConsumeToken(remaining, "#5"))
+      {
+        alterations.sharpFive = true;
+        continue;
+      }
+
+      if (TryConsumeToken(remaining, "13"))
+      {
+        extension = ChordExtension::Thirteenth;
+        if (seventh == ChordSeventh::None)
+        {
+          seventh = quality == ChordQuality::Diminished ? ChordSeventh::Diminished : ChordSeventh::Dominant;
+        }
+        continue;
+      }
+
+      if (TryConsumeToken(remaining, "11"))
+      {
+        extension = ChordExtension::Eleventh;
+        if (seventh == ChordSeventh::None)
+        {
+          seventh = quality == ChordQuality::Diminished ? ChordSeventh::Diminished : ChordSeventh::Dominant;
+        }
+        continue;
+      }
+
+      if (TryConsumeToken(remaining, "9"))
+      {
+        extension = ChordExtension::Ninth;
+        if (seventh == ChordSeventh::None)
+        {
+          seventh = quality == ChordQuality::Diminished ? ChordSeventh::Diminished : ChordSeventh::Dominant;
+        }
+        continue;
+      }
+
+      if (TryConsumeToken(remaining, "7"))
+      {
+        if (seventh == ChordSeventh::None)
+        {
+          seventh = quality == ChordQuality::Diminished ? ChordSeventh::Diminished : ChordSeventh::Dominant;
+        }
+        continue;
+      }
+
+      if (TryConsumeToken(remaining, "6"))
+      {
+        addSixth = true;
+        continue;
+      }
+
+      return false;
+    }
+
+    outChord = new Chord(root, quality, seventh, extension, alterations, addSixth, addNinth);
+    outChord->SetOmitThird(omitThird);
+    outChord->SetOmitFifth(omitFifth);
+
+    if (!bassToken.empty())
+    {
+      Note bass;
+      if (!TryParseSingleNoteToken(ToUpperInvariant(bassToken), bass))
+      {
+        delete outChord;
+        outChord = nullptr;
+        return false;
+      }
+
+      outChord->SetBass(bass);
+    }
+
     return true;
   }
 
@@ -501,5 +836,3 @@ int main(int argc, char * argv[])
 
   return RunConsoleMode();
 }
-
-
