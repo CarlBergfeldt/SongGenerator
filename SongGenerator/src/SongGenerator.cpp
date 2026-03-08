@@ -11,6 +11,9 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
+#ifndef NOGDI
+#define NOGDI
+#endif
 #include <windows.h>
 
 #include "Chord.h"
@@ -38,7 +41,6 @@ namespace
     HWND barsEdit = nullptr;
     HWND renderButton = nullptr;
     HWND outputEdit = nullptr;
-    HFONT monoFont = nullptr;
   };
 
   GuiState g_guiState;
@@ -98,9 +100,9 @@ namespace
     return false;
   }
 
-  bool TryParseChordToken(const std::string & rawToken, Chord *& chord)
+  bool TryParseChordToken(const std::string & rawToken, Chord *& outChord)
   {
-    chord = nullptr;
+    outChord = nullptr;
     std::string token = Trim(rawToken);
     if (token.empty())
     {
@@ -137,7 +139,7 @@ namespace
       return false;
     }
 
-    chord = new Chord(root, quality);
+    outChord = new Chord(root, quality);
     return true;
   }
 
@@ -152,10 +154,10 @@ namespace
     std::string token;
     while (stream >> token)
     {
-      Chord * chord = nullptr;
-      if (TryParseChordToken(token, chord))
+      Chord * parsedChord = nullptr;
+      if (TryParseChordToken(token, parsedChord))
       {
-        chords.push_back(chord);
+        chords.push_back(parsedChord);
       }
     }
 
@@ -323,11 +325,6 @@ namespace
     SetWindowTextA(g_guiState.outputEdit, formatted.c_str());
   }
 
-  void ApplyMonoFont(HWND control, HFONT font)
-  {
-    SendMessageA(control, WM_SETFONT, reinterpret_cast<WPARAM>(font), TRUE);
-  }
-
   void InitializeGuiControls(HWND window)
   {
     CreateWindowExA(0, "STATIC", "Chords (per beat)", WS_CHILD | WS_VISIBLE,
@@ -336,7 +333,7 @@ namespace
     g_guiState.chordsEdit = CreateWindowExA(WS_EX_CLIENTEDGE, "EDIT",
       "Am Em F Em G Am F Em",
       WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL,
-      12, 32, 980, 24, window, reinterpret_cast<HMENU>(kIdChordsEdit), nullptr, nullptr);
+      12, 32, 980, 24, window, reinterpret_cast<HMENU>(static_cast<INT_PTR>(kIdChordsEdit)), nullptr, nullptr);
 
     CreateWindowExA(0, "STATIC", "Lyrics", WS_CHILD | WS_VISIBLE,
       12, 64, 200, 20, window, nullptr, nullptr, nullptr);
@@ -344,65 +341,44 @@ namespace
     g_guiState.lyricsEdit = CreateWindowExA(WS_EX_CLIENTEDGE, "EDIT",
       "Bury all your secrets in my skin and leave me with my sins",
       WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL,
-      12, 84, 980, 24, window, reinterpret_cast<HMENU>(kIdLyricsEdit), nullptr, nullptr);
+      12, 84, 980, 24, window, reinterpret_cast<HMENU>(static_cast<INT_PTR>(kIdLyricsEdit)), nullptr, nullptr);
 
     CreateWindowExA(0, "STATIC", "Time", WS_CHILD | WS_VISIBLE,
       12, 116, 50, 20, window, nullptr, nullptr, nullptr);
 
     g_guiState.timeUpperEdit = CreateWindowExA(WS_EX_CLIENTEDGE, "EDIT", "4",
       WS_CHILD | WS_VISIBLE | ES_NUMBER,
-      62, 112, 40, 24, window, reinterpret_cast<HMENU>(kIdTimeUpperEdit), nullptr, nullptr);
+      62, 112, 40, 24, window, reinterpret_cast<HMENU>(static_cast<INT_PTR>(kIdTimeUpperEdit)), nullptr, nullptr);
 
     CreateWindowExA(0, "STATIC", "/", WS_CHILD | WS_VISIBLE,
       108, 116, 10, 20, window, nullptr, nullptr, nullptr);
 
     g_guiState.timeLowerEdit = CreateWindowExA(WS_EX_CLIENTEDGE, "EDIT", "4",
       WS_CHILD | WS_VISIBLE | ES_NUMBER,
-      120, 112, 40, 24, window, reinterpret_cast<HMENU>(kIdTimeLowerEdit), nullptr, nullptr);
+      120, 112, 40, 24, window, reinterpret_cast<HMENU>(static_cast<INT_PTR>(kIdTimeLowerEdit)), nullptr, nullptr);
 
     CreateWindowExA(0, "STATIC", "Bars (0=auto)", WS_CHILD | WS_VISIBLE,
       180, 116, 100, 20, window, nullptr, nullptr, nullptr);
 
     g_guiState.barsEdit = CreateWindowExA(WS_EX_CLIENTEDGE, "EDIT", "0",
       WS_CHILD | WS_VISIBLE | ES_NUMBER,
-      286, 112, 60, 24, window, reinterpret_cast<HMENU>(kIdBarsEdit), nullptr, nullptr);
+      286, 112, 60, 24, window, reinterpret_cast<HMENU>(static_cast<INT_PTR>(kIdBarsEdit)), nullptr, nullptr);
 
     g_guiState.renderButton = CreateWindowExA(0, "BUTTON", "Render",
       WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-      360, 111, 100, 26, window, reinterpret_cast<HMENU>(kIdRenderButton), nullptr, nullptr);
+      360, 111, 100, 26, window, reinterpret_cast<HMENU>(static_cast<INT_PTR>(kIdRenderButton)), nullptr, nullptr);
 
     g_guiState.outputEdit = CreateWindowExA(WS_EX_CLIENTEDGE, "EDIT", "",
       WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | ES_WANTRETURN,
-      12, 148, 980, 560, window, reinterpret_cast<HMENU>(kIdOutputEdit), nullptr, nullptr);
-
-    g_guiState.monoFont = CreateFontA(
-      -16,
-      0,
-      0,
-      0,
-      FW_NORMAL,
-      FALSE,
-      FALSE,
-      FALSE,
-      ANSI_CHARSET,
-      OUT_DEFAULT_PRECIS,
-      CLIP_DEFAULT_PRECIS,
-      CLEARTYPE_QUALITY,
-      FF_MODERN,
-      "Consolas");
-
-    if (g_guiState.monoFont != nullptr)
-    {
-      ApplyMonoFont(g_guiState.chordsEdit, g_guiState.monoFont);
-      ApplyMonoFont(g_guiState.lyricsEdit, g_guiState.monoFont);
-      ApplyMonoFont(g_guiState.outputEdit, g_guiState.monoFont);
-    }
+      12, 148, 980, 560, window, reinterpret_cast<HMENU>(static_cast<INT_PTR>(kIdOutputEdit)), nullptr, nullptr);
 
     RenderGuiOutput();
   }
 
   LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
   {
+    (void)lParam;
+
     switch (message)
     {
     case WM_CREATE:
@@ -416,11 +392,6 @@ namespace
       }
       break;
     case WM_DESTROY:
-      if (g_guiState.monoFont != nullptr)
-      {
-        DeleteObject(g_guiState.monoFont);
-        g_guiState.monoFont = nullptr;
-      }
       PostQuitMessage(0);
       return 0;
     default:
@@ -505,10 +476,7 @@ namespace
       lower = parsedLower;
     }
 
-    if (TryParseUInt(barsInput, parsedBars))
-    {
-      // parsedBars already set.
-    }
+    TryParseUInt(barsInput, parsedBars);
 
     std::vector<Chord *> chords = ParseChordProgression(chordInput);
     std::string output = RenderTabFromInput(chords, lyricsInput, upper, lower, parsedBars);
@@ -533,4 +501,5 @@ int main(int argc, char * argv[])
 
   return RunConsoleMode();
 }
+
 
