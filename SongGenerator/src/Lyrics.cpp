@@ -1,4 +1,6 @@
 #include <numeric> // accumulate
+#include <string>
+#include <vector>
 
 #include "Lyrics.h"
 

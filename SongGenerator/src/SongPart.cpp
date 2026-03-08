@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstdlib>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -195,11 +196,10 @@ std::string SongPart::ToTabString()
   std::vector<std::string> chordCells(totalBeats);
   if (!chordProgression.empty())
   {
-    for (uint32_t bar = 0; bar < bars; ++bar)
+    const uint32_t beatsWithChords = std::min(totalBeats, static_cast<uint32_t>(chordProgression.size()));
+    for (uint32_t beatIndex = 0; beatIndex < beatsWithChords; ++beatIndex)
     {
-      const uint32_t beatIndex = bar * beatsPerBar;
-      const uint32_t chordIndex = bar % static_cast<uint32_t>(chordProgression.size());
-      chordCells[beatIndex] = chordProgression[chordIndex]->ToString();
+      chordCells[beatIndex] = chordProgression[beatIndex]->ToString();
     }
   }
 
